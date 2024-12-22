@@ -11,7 +11,7 @@ import { NftCollection } from '@/utils/contract-build/NftCollection/tact_NftColl
 import { Account } from '@tonconnect/sdk';
 
 // This is your SBT collection address
-const SBT_CONTRACT_ADDRESS = "EQB9xp1OiZ7F30aaAhdzEJaS4Ac6DGM0aMH4u6VrtVyitlHD";
+const SBT_CONTRACT_ADDRESS = "EQD6dgw9Z63_0RUwz1qx9HJF6K5emanI0gA0c-C6A3DyuUSt";
 
 interface CollectionMetadata {
     name: string;
