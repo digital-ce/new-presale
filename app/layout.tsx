@@ -16,8 +16,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "TON SBT Minter",
-  description: "Simple app for minting Soulbound Tokens on The Open Network",
+  title: "Telemas Gold premarket", 
+  description: "Mint 10,000 Santa's Gold",
 };
 
 export default function RootLayout({
