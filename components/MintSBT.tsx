@@ -191,7 +191,7 @@ export default function MintSBT() {
                             transition-colors disabled:opacity-50`}
                     >
                         {isLoading ? 'Minting...' :
-                            isConnected ? 'Mint SBT' : 'Connect Wallet First'}
+                            isConnected ? 'Mint Voucher' : 'Connect Wallet First'}
                     </button>
                 </div>
             </div>
