@@ -7,7 +7,7 @@ import { Address, beginCell, toNano } from '@ton/core';
 import { Account } from '@tonconnect/sdk';
 
 // Wallet address to receive the TON
-const PRESALE_WALLET = "EQD5cZx11P2Y8YhKTgyY9RY0CfqCsE6OMh0v7S3FBgdVMfpP";
+const PRESALE_WALLET = "UQBeMnQn5gcGxyU5Ypjx4EM805t8RKMSX-SvGaiyoZG6HOTV";
 const TGOLD_PER_TON = 10000; // 1 TON = 10000 $TGOLD
 
 function isConnectedAccount(account: Account | null): account is Account {
