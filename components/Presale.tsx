@@ -26,22 +26,32 @@ export default function Presale() {
     const [tgoldAmount, setTgoldAmount] = useState<string>((10 * TGOLD_PER_TON).toString());
     const [timeLeft, setTimeLeft] = useState<string>('');
     const [error, setError] = useState<string>('');
+    const [mounted, setMounted] = useState(false);
 
     // Get presale data using our custom hook
     const { presaleStats, buyerInfo, loading: presaleLoading, recordPurchase } = usePresale(
-        tonConnectUI.account?.address
+        isConnected ? tonConnectUI?.account?.address : undefined
     );
+
+    // Handle mounting
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Connection status tracking
     useEffect(() => {
         if (!tonConnectUI) return;
-        const unsubscribe = tonConnectUI.onStatusChange(
-            (wallet) => {
-                setIsConnected(!!wallet);
-            }
-        );
-        setIsConnected(!!tonConnectUI.account);
-        return () => unsubscribe();
+        
+        const handleStatusChange = (wallet: any) => {
+            setIsConnected(!!wallet);
+        };
+
+        const unsubscribe = tonConnectUI.onStatusChange(handleStatusChange);
+        setIsConnected(!!tonConnectUI?.account);
+        
+        return () => {
+            unsubscribe();
+        };
     }, [tonConnectUI]);
 
     // Countdown timer
@@ -65,6 +75,11 @@ export default function Presale() {
         return () => clearInterval(timer);
     }, []);
 
+    // Prevent hydration issues
+    if (!mounted) {
+        return null;
+    }
+
     const handleTonAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setError('');
@@ -85,7 +100,7 @@ export default function Presale() {
     };
 
     const handleTransfer = async () => {
-        if (!isConnected || !isConnectedAccount(tonConnectUI.account)) {
+        if (!tonConnectUI || !isConnected || !tonConnectUI.account) {
             alert('Please connect your wallet first');
             return;
         }
