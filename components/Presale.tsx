@@ -1,11 +1,9 @@
-// components/Presale.tsx
 'use client'
 
 import { useState, useEffect } from 'react';
 import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, toNano } from '@ton/core';
 import { Account } from '@tonconnect/sdk';
-import { usePresale } from '../hooks/usePresale';
 
 const PRESALE_WALLET = "UQBeMnQn5gcGxyU5Ypjx4EM805t8RKMSX-SvGaiyoZG6HOTV";
 const TGOLD_PER_TON = 7500;
@@ -13,6 +11,29 @@ const MIN_PURCHASE = 0.2;
 const MAX_PURCHASE = 1000;
 const TOTAL_ALLOCATION = 10000000;
 const PRESALE_END_DATE = new Date('2024-02-15T00:00:00Z');
+
+// Mock data constants
+const MOCK_PRESALE_STATS = {
+    totalRaised: 200, // 200 TON raised
+    totalTokensSold: 1500000, // 1.5M TGOLD sold
+};
+
+const MOCK_BUYER_INFO = {
+    totalTonSpent: 15.5,
+    totalTokensBought: 116250, // 15.5 * 7500
+    purchases: [
+        {
+            tonAmount: 10,
+            tokenAmount: 75000,
+            timestamp: Date.now() - 86400000, // Yesterday
+        },
+        {
+            tonAmount: 5.5,
+            tokenAmount: 41250,
+            timestamp: Date.now() - 172800000, // 2 days ago
+        }
+    ]
+};
 
 function isConnectedAccount(account: Account | null): account is Account {
     return account !== null;
@@ -28,10 +49,23 @@ export default function Presale() {
     const [error, setError] = useState<string>('');
     const [mounted, setMounted] = useState(false);
 
-    // Get presale data using our custom hook
-    const { presaleStats, buyerInfo, loading: presaleLoading, recordPurchase } = usePresale(
-        isConnected ? tonConnectUI?.account?.address : undefined
-    );
+    // Mock presale data
+    const presaleStats = MOCK_PRESALE_STATS;
+    const buyerInfo = isConnected ? MOCK_BUYER_INFO : null;
+    const presaleLoading = false;
+
+    // Mock record purchase function
+    const recordPurchase = async (
+        address: string,
+        tonAmount: number,
+        tgoldAmount: number,
+        transactionHash: string
+    ) => {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('Purchase recorded:', { address, tonAmount, tgoldAmount, transactionHash });
+        return true;
+    };
 
     // Handle mounting
     useEffect(() => {
@@ -131,7 +165,7 @@ export default function Presale() {
                 ],
             });
 
-            // Record the purchase in Firestore
+            // Record the purchase using mock function
             await recordPurchase(
                 tonConnectUI.account.address,
                 parseFloat(tonAmount),
