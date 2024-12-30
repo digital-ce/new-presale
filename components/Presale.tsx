@@ -38,6 +38,21 @@ export default function Presale() {
         setMounted(true);
     }, []);
 
+    // Test At the top of your Presale component
+useEffect(() => {
+    alert("Testing Firebase connection...");
+    const db = getFirestore();
+    const docRef = doc(db, 'stats', 'presale_stats');
+    getDoc(docRef)
+        .then(doc => {
+            alert("Firebase connection test:", doc.exists() ? "Document exists" : "No document");
+            alert("Document data:", doc.data());
+        })
+        .catch(error => {
+            alert("Firebase connection error:", error);
+        });
+}, []);
+
     // Connection status tracking
     useEffect(() => {
         if (!tonConnectUI) return;
