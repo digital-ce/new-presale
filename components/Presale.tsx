@@ -199,13 +199,12 @@ export default function Presale() {
         try {
             setIsLoading(true);
             const transferAmount = toNano(tonAmount);
-            const receiverAddress = Address.parse(PRESALE_WALLET);
 
             const result = await tonConnectUI.sendTransaction({
                 validUntil: Math.floor(Date.now() / 1000) + 60,
                 messages: [
                     {
-                        address: receiverAddress.toString(),
+                        address: PRESALE_WALLET,
                         amount: transferAmount.toString(),
                     },
                 ],
@@ -383,4 +382,4 @@ export default function Presale() {
         </div>
     );
 }
-9
+
