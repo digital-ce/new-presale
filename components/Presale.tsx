@@ -9,7 +9,7 @@ import { usePresale } from '../hooks/usePresale';
 
 const PRESALE_WALLET = "UQBeMnQn5gcGxyU5Ypjx4EM805t8RKMSX-SvGaiyoZG6HOTV";
 const TGOLD_PER_TON = 7500;
-const MIN_PURCHASE = 0.5;
+const MIN_PURCHASE = 0.2;
 const MAX_PURCHASE = 1000;
 const TOTAL_ALLOCATION = 10000000;
 const PRESALE_END_DATE = new Date('2024-02-15T00:00:00Z');
