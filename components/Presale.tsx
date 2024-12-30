@@ -10,13 +10,26 @@ const TGOLD_PER_TON = 7500;
 const MIN_PURCHASE = 0.2;
 const MAX_PURCHASE = 1000;
 const TOTAL_ALLOCATION = 10000000;
-const PRESALE_END_DATE = new Date('2024-12-31T00:00:00Z');
+const PRESALE_END_DATE = new Date('2024-12-31T18:00:00Z'); // 6 PM UTC on Dec 31, 2024
 
-// Mock data constants
-const MOCK_PRESALE_STATS = {
-    totalRaised: 200, // 200 TON raised
-    totalTokensSold: 1500000, // 1.5M TGOLD sold
+// LocalStorage keys
+const STORAGE_KEYS = {
+    PRESALE_STATS: 'presale_stats',
+    TRANSACTIONS: 'user_transactions',
 };
+
+// Types
+interface Transaction {
+    tonAmount: number;
+    tokenAmount: number;
+    timestamp: number;
+    address: string;
+}
+
+interface PresaleStats {
+    totalRaised: number;
+    totalTokensSold: number;
+}
 
 function isConnectedAccount(account: Account | null): account is Account {
     return account !== null;
@@ -31,24 +44,40 @@ export default function Presale() {
     const [timeLeft, setTimeLeft] = useState<string>('');
     const [error, setError] = useState<string>('');
     const [mounted, setMounted] = useState(false);
+    const [presaleStats, setPresaleStats] = useState<PresaleStats>({
+        totalRaised: 0,
+        totalTokensSold: 0
+    });
+    const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
 
-    // Mock presale data
-    const presaleStats = MOCK_PRESALE_STATS;
-    const buyerInfo = isConnected ? MOCK_BUYER_INFO : null;
-    const presaleLoading = false;
+    // Initialize localStorage data
+    useEffect(() => {
+        const storedStats = localStorage.getItem(STORAGE_KEYS.PRESALE_STATS);
+        if (!storedStats) {
+            const initialStats: PresaleStats = {
+                totalRaised: 0,
+                totalTokensSold: 0
+            };
+            localStorage.setItem(STORAGE_KEYS.PRESALE_STATS, JSON.stringify(initialStats));
+            setPresaleStats(initialStats);
+        } else {
+            setPresaleStats(JSON.parse(storedStats));
+        }
+    }, []);
 
-    // Mock record purchase function
-    const recordPurchase = async (
-        address: string,
-        tonAmount: number,
-        tgoldAmount: number,
-        transactionHash: string
-    ) => {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log('Purchase recorded:', { address, tonAmount, tgoldAmount, transactionHash });
-        return true;
-    };
+    // Load user transactions when connected
+    useEffect(() => {
+        if (isConnected && tonConnectUI?.account) {
+            const storedTransactions = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
+            if (storedTransactions) {
+                const allTransactions: Transaction[] = JSON.parse(storedTransactions);
+                const userTxs = allTransactions.filter(tx => 
+                    tx.address === tonConnectUI.account?.address
+                );
+                setUserTransactions(userTxs);
+            }
+        }
+    }, [isConnected, tonConnectUI?.account]);
 
     // Handle mounting
     useEffect(() => {
@@ -92,6 +121,12 @@ export default function Presale() {
         return () => clearInterval(timer);
     }, []);
 
+    // Calculate user totals
+    const userTotals = userTransactions.reduce((acc, tx) => ({
+        totalTonSpent: acc.totalTonSpent + tx.tonAmount,
+        totalTokensBought: acc.totalTokensBought + tx.tokenAmount
+    }), { totalTonSpent: 0, totalTokensBought: 0 });
+
     // Prevent hydration issues
     if (!mounted) {
         return null;
@@ -114,6 +149,34 @@ export default function Presale() {
             const tgoldValue = numValue * TGOLD_PER_TON;
             setTgoldAmount(tgoldValue.toString());
         }
+    };
+
+    const recordTransaction = (address: string, tonAmount: number, tokenAmount: number) => {
+        const newTransaction: Transaction = {
+            address,
+            tonAmount,
+            tokenAmount,
+            timestamp: Date.now()
+        };
+
+        // Update transactions
+        const storedTransactions = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
+        const transactions: Transaction[] = storedTransactions 
+            ? JSON.parse(storedTransactions) 
+            : [];
+        transactions.push(newTransaction);
+        localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
+
+        // Update presale stats
+        const newStats = {
+            totalRaised: presaleStats.totalRaised + tonAmount,
+            totalTokensSold: presaleStats.totalTokensSold + tokenAmount
+        };
+        localStorage.setItem(STORAGE_KEYS.PRESALE_STATS, JSON.stringify(newStats));
+        
+        // Update state
+        setPresaleStats(newStats);
+        setUserTransactions(prev => [...prev, newTransaction]);
     };
 
     const handleTransfer = async () => {
@@ -148,12 +211,11 @@ export default function Presale() {
                 ],
             });
 
-            // Record the purchase using mock function
-            await recordPurchase(
+            // Record the transaction
+            recordTransaction(
                 tonConnectUI.account.address,
                 parseFloat(tonAmount),
-                parseFloat(tgoldAmount),
-                result.boc // Transaction hash
+                parseFloat(tgoldAmount)
             );
 
             alert('Transfer successful! You will receive your $TGOLD tokens after the TGE.');
@@ -166,8 +228,8 @@ export default function Presale() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-            <div className="bg-gray-800 rounded-lg p-8 max-w-md w-full">
+        <div className="min-h-screen bg-green-900 flex items-center justify-center p-4">
+            <div className="bg-green-800 rounded-lg p-8 max-w-md w-full shadow-lg">
                 <div className="mb-6">
                     <TonConnectButton />
                 </div>
@@ -176,45 +238,63 @@ export default function Presale() {
                         Telemas Gold Presale
                     </h1>
 
-                    <p className="text-gray-400 text-center mb-2">
+                    <p className="text-green-200 text-center mb-2">
                         Digital Mall of the Future
                     </p>
 
                     {/* Presale Stats */}
-                    {!presaleLoading && presaleStats && (
-                        <div className="w-full bg-gray-700 rounded-lg p-4 mb-6">
+                    <div className="w-full bg-green-700 rounded-lg p-4 mb-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="text-center">
+                                <p className="text-green-200 text-sm">Total Raised</p>
+                                <p className="text-white font-semibold">
+                                    {presaleStats.totalRaised.toFixed(2)} TON
+                                </p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-green-200 text-sm">Total Sold</p>
+                                <p className="text-white font-semibold">
+                                    {presaleStats.totalTokensSold.toLocaleString()} $TGOLD
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Countdown Timer */}
+                    <div className="w-full bg-red-700 rounded-lg p-4 mb-6">
+                        <div className="text-center">
+                            <p className="text-white text-lg font-semibold mb-2">Presale Ends In</p>
+                            <p className="text-red-200 text-xl">{timeLeft}</p>
+                        </div>
+                    </div>
+
+                    {/* User Stats */}
+                    {isConnected && (
+                        <div className="w-full bg-green-700 rounded-lg p-4 mb-6">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="text-center">
-                                    <p className="text-gray-400 text-sm">Total Raised</p>
+                                    <p className="text-green-200 text-sm">Your Total Spent</p>
                                     <p className="text-white font-semibold">
-                                        {presaleStats.totalRaised.toFixed(2)} TON
+                                        {userTotals.totalTonSpent.toFixed(2)} TON
                                     </p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-gray-400 text-sm">Total Sold</p>
+                                    <p className="text-green-200 text-sm">Your Total $TGOLD</p>
                                     <p className="text-white font-semibold">
-                                        {presaleStats.totalTokensSold.toLocaleString()} $TGOLD
+                                        {userTotals.totalTokensBought.toLocaleString()} $TGOLD
                                     </p>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Countdown Timer */}
-                    <div className="w-full bg-gray-700 rounded-lg p-4 mb-6">
-                        <div className="text-center">
-                            <p className="text-white text-lg font-semibold mb-2">Presale Ends In</p>
-                            <p className="text-blue-400 text-xl">{timeLeft}</p>
-                        </div>
-                    </div>
-
                     <div className="grid grid-cols-2 gap-4 w-full mb-6">
-                        <div className="bg-gray-700 p-3 rounded text-center">
-                            <p className="text-gray-400 text-sm">Rate</p>
+                        <div className="bg-red-700 p-3 rounded text-center">
+                            <p className="text-red-200 text-sm">Rate</p>
                             <p className="text-white font-semibold">1 TON = {TGOLD_PER_TON} $TGOLD</p>
                         </div>
-                        <div className="bg-gray-700 p-3 rounded text-center">
-                            <p className="text-gray-400 text-sm">Min/Max Purchase</p>
+                        <div className="bg-red-700 p-3 rounded text-center">
+                            <p className="text-red-200 text-sm">Min/Max Purchase</p>
                             <p className="text-white font-semibold">{MIN_PURCHASE}/{MAX_PURCHASE} TON</p>
                         </div>
                     </div>
@@ -226,10 +306,10 @@ export default function Presale() {
                                 type="text"
                                 value={tonAmount}
                                 onChange={handleTonAmountChange}
-                                className="w-full px-4 py-2 rounded bg-gray-700 text-white"
+                                className="w-full px-4 py-2 rounded bg-green-700 text-white placeholder-green-300"
                                 placeholder={`Enter TON amount (${MIN_PURCHASE}-${MAX_PURCHASE})`}
                             />
-                            {error && <p className="text-red-500 text-sm">{error}</p>}
+                            {error && <p className="text-red-300 text-sm">{error}</p>}
                         </div>
 
                         <div className="space-y-2">
@@ -238,7 +318,7 @@ export default function Presale() {
                                 type="text"
                                 value={`${tgoldAmount} $TGOLD`}
                                 readOnly
-                                className="w-full px-4 py-2 rounded bg-gray-700 text-white"
+                                className="w-full px-4 py-2 rounded bg-green-700 text-white"
                             />
                         </div>
                     </div>
@@ -248,7 +328,7 @@ export default function Presale() {
                         disabled={isLoading || !isConnected || !!error}
                         className={`w-full py-3 px-6 rounded-lg font-semibold text-white 
                             ${isConnected && !error
-                                ? 'bg-blue-600 hover:bg-blue-700'
+                                ? 'bg-red-600 hover:bg-red-700'
                                 : 'bg-gray-600'} 
                             transition-colors disabled:opacity-50`}
                     >
@@ -256,12 +336,46 @@ export default function Presale() {
                             isConnected ? 'Buy $TGOLD' : 'Connect Wallet First'}
                     </button>
 
+                    {/* Transaction History */}
+                    {isConnected && userTransactions.length > 0 && (
+                        <div className="mt-6 w-full">
+                            <h3 className="text-white font-semibold mb-3">Your Purchase History</h3>
+                            <div className="space-y-2">
+                                {userTransactions.map((purchase, index) => (
+                                    <div key={index} className="bg-green-700 p-3 rounded">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-green-200">Amount:</span>
+                                            <span className="text-white">{purchase.tonAmount} TON</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-green-200">$TGOLD:</span>
+                                            <span className="text-white">{purchase.tokenAmount.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-green-200">Date:</span>
+<span className="text-white">
+                                                {new Date(purchase.timestamp).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="mt-6 space-y-2 text-center">
-                        <p className="text-gray-400 text-sm">
+                        <p className="text-green-200 text-sm">
                             Tokens will be distributed after the Token Generation Event (TGE)
                         </p>
-                        <p className="text-gray-400 text-sm">
+                        <p className="text-green-200 text-sm">
                             Minimum Purchase: {MIN_PURCHASE} TON = {MIN_PURCHASE * TGOLD_PER_TON} $TGOLD
+                        </p>
+                    </div>
+
+                    {/* Festive decorations */}
+                    <div className="mt-6 text-center">
+                        <p className="text-red-300 text-sm animate-pulse">
+                            🎄 Happy Holidays! 🎄
                         </p>
                     </div>
                 </div>
@@ -269,3 +383,4 @@ export default function Presale() {
         </div>
     );
 }
+9
