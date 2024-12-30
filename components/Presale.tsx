@@ -3,17 +3,16 @@
 
 import { useState, useEffect } from 'react';
 import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
-import { Address, beginCell, toNano } from '@ton/core';
+import { Address, toNano } from '@ton/core';
 import { Account } from '@tonconnect/sdk';
+import { usePresale } from '../hooks/usePresale';
 
 const PRESALE_WALLET = "UQBeMnQn5gcGxyU5Ypjx4EM805t8RKMSX-SvGaiyoZG6HOTV";
-const TGOLD_PER_TON = 7500; // Updated rate: 1 TON = 7500 $TGOLD
-
-// Presale Parameters
-const MIN_PURCHASE = 1; // Minimum TON purchase
-const MAX_PURCHASE = 1000; // Maximum TON purchase
-const TOTAL_ALLOCATION = 10000000; // Total $TGOLD for presale
-const PRESALE_END_DATE = new Date('2024-02-15T00:00:00Z'); // Example end date
+const TGOLD_PER_TON = 7500;
+const MIN_PURCHASE = 1;
+const MAX_PURCHASE = 1000;
+const TOTAL_ALLOCATION = 10000000;
+const PRESALE_END_DATE = new Date('2024-02-15T00:00:00Z');
 
 function isConnectedAccount(account: Account | null): account is Account {
     return account !== null;
@@ -27,6 +26,11 @@ export default function Presale() {
     const [tgoldAmount, setTgoldAmount] = useState<string>((10 * TGOLD_PER_TON).toString());
     const [timeLeft, setTimeLeft] = useState<string>('');
     const [error, setError] = useState<string>('');
+
+    // Get presale data using our custom hook
+    const { presaleStats, buyerInfo, loading: presaleLoading, recordPurchase } = usePresale(
+        tonConnectUI.account?.address
+    );
 
     // Connection status tracking
     useEffect(() => {
@@ -61,7 +65,6 @@ export default function Presale() {
         return () => clearInterval(timer);
     }, []);
 
-    // Handle TON amount input change
     const handleTonAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setError('');
@@ -69,7 +72,6 @@ export default function Presale() {
         if (value === '' || /^\d*\.?\d*$/.test(value)) {
             const numValue = parseFloat(value || '0');
 
-            // Validation
             if (numValue < MIN_PURCHASE) {
                 setError(`Minimum purchase is ${MIN_PURCHASE} TON`);
             } else if (numValue > MAX_PURCHASE) {
@@ -82,7 +84,6 @@ export default function Presale() {
         }
     };
 
-    // Handle transfer process
     const handleTransfer = async () => {
         if (!isConnected || !isConnectedAccount(tonConnectUI.account)) {
             alert('Please connect your wallet first');
@@ -105,7 +106,7 @@ export default function Presale() {
             const transferAmount = toNano(tonAmount);
             const receiverAddress = Address.parse(PRESALE_WALLET);
 
-            await tonConnectUI.sendTransaction({
+            const result = await tonConnectUI.sendTransaction({
                 validUntil: Math.floor(Date.now() / 1000) + 60,
                 messages: [
                     {
@@ -114,6 +115,14 @@ export default function Presale() {
                     },
                 ],
             });
+
+            // Record the purchase in Firestore
+            await recordPurchase(
+                tonConnectUI.account.address,
+                parseFloat(tonAmount),
+                parseFloat(tgoldAmount),
+                result.boc // Transaction hash
+            );
 
             alert('Transfer successful! You will receive your $TGOLD tokens after the TGE.');
         } catch (error) {
@@ -139,12 +148,54 @@ export default function Presale() {
                         Digital Mall of the Future
                     </p>
 
+                    {/* Presale Stats */}
+                    {!presaleLoading && presaleStats && (
+                        <div className="w-full bg-gray-700 rounded-lg p-4 mb-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="text-center">
+                                    <p className="text-gray-400 text-sm">Total Raised</p>
+                                    <p className="text-white font-semibold">
+                                        {presaleStats.totalRaised.toFixed(2)} TON
+                                    </p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-gray-400 text-sm">Total Sold</p>
+                                    <p className="text-white font-semibold">
+                                        {presaleStats.totalTokensSold.toLocaleString()} $TGOLD
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Countdown Timer */}
                     <div className="w-full bg-gray-700 rounded-lg p-4 mb-6">
                         <div className="text-center">
                             <p className="text-white text-lg font-semibold mb-2">Presale Ends In</p>
                             <p className="text-blue-400 text-xl">{timeLeft}</p>
                         </div>
                     </div>
+
+                    // components/Presale.tsx (continued)
+                    {/* User Stats */}
+                    {!presaleLoading && buyerInfo && (
+                        <div className="w-full bg-gray-700 rounded-lg p-4 mb-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="text-center">
+                                    <p className="text-gray-400 text-sm">Your Total Spent</p>
+                                    <p className="text-white font-semibold">
+                                        {buyerInfo.totalTonSpent.toFixed(2)} TON
+                                    </p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-gray-400 text-sm">Your Total $TGOLD</p>
+                                    <p className="text-white font-semibold">
+                                        {buyerInfo.totalTokensBought.toLocaleString()} $TGOLD
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4 w-full mb-6">
                         <div className="bg-gray-700 p-3 rounded text-center">
@@ -193,6 +244,33 @@ export default function Presale() {
                         {isLoading ? 'Processing...' :
                             isConnected ? 'Buy $TGOLD' : 'Connect Wallet First'}
                     </button>
+
+                    {/* Transaction History */}
+                    {!presaleLoading && buyerInfo && buyerInfo.purchases.length > 0 && (
+                        <div className="mt-6 w-full">
+                            <h3 className="text-white font-semibold mb-3">Your Purchase History</h3>
+                            <div className="space-y-2">
+                                {buyerInfo.purchases.map((purchase, index) => (
+                                    <div key={index} className="bg-gray-700 p-3 rounded">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-400">Amount:</span>
+                                            <span className="text-white">{purchase.tonAmount} TON</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-400">$TGOLD:</span>
+                                            <span className="text-white">{purchase.tokenAmount.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-400">Date:</span>
+                                            <span className="text-white">
+                                                {new Date(purchase.timestamp).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="mt-6 space-y-2 text-center">
                         <p className="text-gray-400 text-sm">
