@@ -18,23 +18,6 @@ const MOCK_PRESALE_STATS = {
     totalTokensSold: 1500000, // 1.5M TGOLD sold
 };
 
-const MOCK_BUYER_INFO = {
-    totalTonSpent: 15.5,
-    totalTokensBought: 116250, // 15.5 * 7500
-    purchases: [
-        {
-            tonAmount: 10,
-            tokenAmount: 75000,
-            timestamp: Date.now() - 86400000, // Yesterday
-        },
-        {
-            tonAmount: 5.5,
-            tokenAmount: 41250,
-            timestamp: Date.now() - 172800000, // 2 days ago
-        }
-    ]
-};
-
 function isConnectedAccount(account: Account | null): account is Account {
     return account !== null;
 }
@@ -225,26 +208,6 @@ export default function Presale() {
                         </div>
                     </div>
 
-                    {/* User Stats */}
-                    {!presaleLoading && buyerInfo && (
-                        <div className="w-full bg-gray-700 rounded-lg p-4 mb-6">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="text-center">
-                                    <p className="text-gray-400 text-sm">Your Total Spent</p>
-                                    <p className="text-white font-semibold">
-                                        {buyerInfo.totalTonSpent.toFixed(2)} TON
-                                    </p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-gray-400 text-sm">Your Total $TGOLD</p>
-                                    <p className="text-white font-semibold">
-                                        {buyerInfo.totalTokensBought.toLocaleString()} $TGOLD
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     <div className="grid grid-cols-2 gap-4 w-full mb-6">
                         <div className="bg-gray-700 p-3 rounded text-center">
                             <p className="text-gray-400 text-sm">Rate</p>
@@ -292,33 +255,6 @@ export default function Presale() {
                         {isLoading ? 'Processing...' :
                             isConnected ? 'Buy $TGOLD' : 'Connect Wallet First'}
                     </button>
-
-                    {/* Transaction History */}
-                    {!presaleLoading && buyerInfo && buyerInfo.purchases.length > 0 && (
-                        <div className="mt-6 w-full">
-                            <h3 className="text-white font-semibold mb-3">Your Purchase History</h3>
-                            <div className="space-y-2">
-                                {buyerInfo.purchases.map((purchase, index) => (
-                                    <div key={index} className="bg-gray-700 p-3 rounded">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-400">Amount:</span>
-                                            <span className="text-white">{purchase.tonAmount} TON</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-400">$TGOLD:</span>
-                                            <span className="text-white">{purchase.tokenAmount.toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-400">Date:</span>
-                                            <span className="text-white">
-                                                {new Date(purchase.timestamp).toLocaleDateString()}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
 
                     <div className="mt-6 space-y-2 text-center">
                         <p className="text-gray-400 text-sm">
