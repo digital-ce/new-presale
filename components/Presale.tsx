@@ -55,8 +55,8 @@ export default function Presale() {
         const storedStats = localStorage.getItem(STORAGE_KEYS.PRESALE_STATS);
         if (!storedStats) {
             const initialStats: PresaleStats = {
-                totalRaised: 0,
-                totalTokensSold: 0
+                totalRaised: 200,
+                totalTokensSold: 1500000
             };
             localStorage.setItem(STORAGE_KEYS.PRESALE_STATS, JSON.stringify(initialStats));
             setPresaleStats(initialStats);
