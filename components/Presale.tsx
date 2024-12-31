@@ -45,8 +45,8 @@ export default function Presale() {
     const [error, setError] = useState<string>('');
     const [mounted, setMounted] = useState(false);
     const [presaleStats, setPresaleStats] = useState<PresaleStats>({
-        totalRaised: 0,
-        totalTokensSold: 0
+        totalRaised: 205,
+        totalTokensSold: 1537500
     });
     const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
 
