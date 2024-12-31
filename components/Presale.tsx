@@ -45,8 +45,8 @@ export default function Presale() {
     const [error, setError] = useState<string>('');
     const [mounted, setMounted] = useState(false);
     const [presaleStats, setPresaleStats] = useState<PresaleStats>({
-        totalRaised: 205,
-        totalTokensSold: 1537500
+        totalRaised: 0,
+        totalTokensSold: 0
     });
     const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
 
@@ -55,8 +55,8 @@ export default function Presale() {
         const storedStats = localStorage.getItem(STORAGE_KEYS.PRESALE_STATS);
         if (!storedStats) {
             const initialStats: PresaleStats = {
-                totalRaised: 200,
-                totalTokensSold: 1500000
+                totalRaised: 203,
+                totalTokensSold: 1522500
             };
             localStorage.setItem(STORAGE_KEYS.PRESALE_STATS, JSON.stringify(initialStats));
             setPresaleStats(initialStats);
